@@ -88,7 +88,7 @@ class Debrid:
         except ConnectTimeout:
             logger.error("Connection to Real-Debrid timed out.")
         except Exception as e:
-            logger.exception(f"Failed to validate Real-Debrid settings: {e}")
+            logger.error(f"Failed to validate Real-Debrid settings: {e}")
         return False
 
 

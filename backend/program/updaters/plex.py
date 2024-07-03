@@ -109,6 +109,8 @@ class PlexUpdater:
                             if self._update_section(section, item):
                                 section_name = section.title
                                 updated = True
+                    else:
+                        logger.error(f"Unable to update section with unknown item type {item.type}: {item.log_string}")
 
         if updated:
             if isinstance(item, (Show, Season)):
@@ -117,7 +119,7 @@ class PlexUpdater:
                 else:
                     updated_episodes_log = ', '.join([str(ep.number) for ep in updated_episodes])
                     logger.log("PLEX", f"Updated section {section_name} for episodes {updated_episodes_log} in {item.log_string}")
-            else:
+            elif isinstance(item, (Movie, Episode)):
                 logger.log("PLEX", f"Updated section {section_name} for {item.log_string}")
 
         yield item
@@ -129,6 +131,7 @@ class PlexUpdater:
             section.update(str(update_folder))
             item.set("update_folder", "updated")
             return True
+        logger.error(f"Unable to update correct plex section '{section.title}' for {item.log_string} with folder: '{update_folder}'")
         return False
 
     def map_sections_with_paths(self) -> Dict[LibrarySection, List[str]]:

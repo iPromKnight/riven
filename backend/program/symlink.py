@@ -511,8 +511,6 @@ def blacklist_item(item):
     reset_item(item)
     if infohash:
         hash_cache.blacklist(infohash)
-    else:
-        logger.error(f"Failed to retrieve hash for {item.log_string}, unable to blacklist")
 
 def reset_item(item: Union[Movie, Show, Season, Episode], reset_times: bool = True) -> None:
     """Reset item attributes for rescraping."""

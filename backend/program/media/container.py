@@ -154,54 +154,59 @@ class MediaItemContainer:
 
     def upsert(self, item: MediaItem) -> None:
         """Iterate through the input item and upsert all parents and children."""
-        if not item:
-            logger.error(f"Item is None: {item}")
-            return
+        try:
+            if not item:
+                logger.error(f"Item is None: {item}")
+                return
 
-        self._items[item.item_id] = item
-        detatched = item.item_id.parent_id is None or item.parent is None
-        if isinstance(item, (Season, Episode)) and detatched:
-            if not item or not getattr(item, 'log_string', None):
-                logger.error(f"Detached item cannot be upserted into the database")
-            else:
-                logger.error(
-                    f"{item.__class__.__name__} item {item.log_string} is detatched " +
-                    "and not associated with a parent, and thus" +
-                    " it cannot be upserted into the database"
-                )
-            del self._items[item.item_id]
-            return
-        if isinstance(item, Show):
-            self._shows[item.item_id] = item
-            for season in item.seasons:
-                season.parent = item
-                self._items[season.item_id] = season
-                self._seasons[season.item_id] = season
-                for episode in season.episodes:
-                    episode.parent = season
+            self._items[item.item_id] = item
+            detatched = item.item_id.parent_id is None or item.parent is None
+            if isinstance(item, (Season, Episode)) and detatched:
+                if not item or not getattr(item, 'log_string', None):
+                    logger.error(f"Detached item cannot be upserted into the database")
+                else:
+                    logger.error(
+                        f"{item.__class__.__name__} item {item.log_string} is detatched " +
+                        "and not associated with a parent, and thus" +
+                        " it cannot be upserted into the database"
+                    )
+                del self._items[item.item_id]
+                return
+            if isinstance(item, Show):
+                self._shows[item.item_id] = item
+                for season in item.seasons:
+                    season.parent = item
+                    self._items[season.item_id] = season
+                    self._seasons[season.item_id] = season
+                    for episode in season.episodes:
+                        episode.parent = season
+                        self._items[episode.item_id] = episode
+                        self._episodes[episode.item_id] = episode
+            if isinstance(item, Season):
+                self._seasons[item.item_id] = item
+                # update children
+                for episode in item.episodes:
+                    episode.parent = item
                     self._items[episode.item_id] = episode
                     self._episodes[episode.item_id] = episode
-        if isinstance(item, Season):
-            self._seasons[item.item_id] = item
-            # update children
-            for episode in item.episodes:
-                episode.parent = item
-                self._items[episode.item_id] = episode
-                self._episodes[episode.item_id] = episode
-            # Ensure the parent Show is updated in the container
-            container_show: Show = self._items[item.item_id.parent_id]
-            parent_index = container_show.get_season_index_by_id(item.item_id)
-            if parent_index is not None:
-                container_show.seasons[parent_index] = item
-        elif isinstance(item, Episode):
-            self._episodes[item.item_id] = item
-            # Ensure the parent Season is updated in the container
-            container_season: Season = self._items[item.item_id.parent_id]
-            parent_index = container_season.get_episode_index_by_id(item.item_id)
-            if parent_index is not None:
-                container_season.episodes[parent_index] = item
-        elif isinstance(item, Movie):
-            self._movies[item.item_id] = item
+                # Ensure the parent Show is updated in the container
+                container_show: Show = self._items[item.item_id.parent_id]
+                parent_index = container_show.get_season_index_by_id(item.item_id)
+                if parent_index is not None:
+                    container_show.seasons[parent_index] = item
+            elif isinstance(item, Episode):
+                self._episodes[item.item_id] = item
+                # Ensure the parent Season is updated in the container
+                container_season: Season = self._items[item.item_id.parent_id]
+                parent_index = container_season.get_episode_index_by_id(item.item_id)
+                if parent_index is not None:
+                    container_season.episodes[parent_index] = item
+            elif isinstance(item, Movie):
+                self._movies[item.item_id] = item
+        except KeyError as e:
+            logger.error(f"KeyError occurred while upserting item: {e}. This may be due to a missing parent item or an invalid item ID.")
+        except Exception as e:
+            logger.error(f"Unexpected error occurred while upserting {item.log_string}: {e}")
 
     def _index_item(self, item: MediaItem):
         """Index the item and its children in the appropriate dictionaries."""

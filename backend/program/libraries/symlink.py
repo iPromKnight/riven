@@ -13,7 +13,6 @@ class SymlinkLibrary:
         self.settings = settings_manager.settings.symlink
         self.initialized = self.validate()
         if not self.initialized:
-            logger.error("SymlinkLibrary initialization failed due to invalid configuration.")
             return
 
     def validate(self) -> bool:

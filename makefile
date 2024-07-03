@@ -78,7 +78,7 @@ clean:
 	@rm -rf data/media.pkl data/media.pkl.bak
 
 install:
-	@poetry install --with dev
+	@poetry install --with dev --no-root
 
 # Run the application
 run:

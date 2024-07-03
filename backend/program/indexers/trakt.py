@@ -24,10 +24,10 @@ class TraktIndexer:
     def copy_items(self, itema: MediaItem, itemb: MediaItem):
         if isinstance(itema, Show) and isinstance(itemb, Show):
             for (seasona, seasonb) in zip(itema.seasons, itemb.seasons):
+                seasonb.set("is_anime", itema.is_anime)
                 for (episodea, episodeb) in zip(seasona.episodes, seasonb.episodes):
                     episodeb.set("update_folder", episodea.update_folder)
                     episodeb.set("symlinked", episodea.symlinked)
-                    seasonb.set("is_anime", itema.is_anime)
                     episodeb.set("is_anime", itema.is_anime) 
         elif isinstance(itema, Movie) and isinstance(itemb, Movie):
             itemb.set("update_folder", itema.update_folder)
