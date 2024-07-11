@@ -63,7 +63,11 @@ class Debrid:
         try:
             response = ping(f"{RD_BASE_URL}/user", additional_headers=self.auth_headers, proxies=self.proxy)
             if response.ok:
-                user_info = response.json()
+                try:
+                    user_info = response.json()
+                except:
+                    logger.error("Couldn't parse user data response from Real-Debrid.")
+                    return False
                 expiration = user_info.get("expiration", "")
                 expiration_datetime = datetime.fromisoformat(expiration.replace('Z', '+00:00')).replace(tzinfo=None)
                 time_left = expiration_datetime - datetime.utcnow().replace(tzinfo=None)

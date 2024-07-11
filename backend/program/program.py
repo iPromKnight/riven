@@ -82,6 +82,8 @@ class Program(threading.Thread):
             logger.error("No Downloader service initialized, you must select at least one.")
         if not self.processing_services.get(Scraping).initialized:
             logger.error("No Scraping service initialized, you must select at least one.")
+        if settings_manager.settings.updaters.local.enabled and settings_manager.settings.updaters.plex.enabled:
+            logger.error("Local updater can not be used together with the plex updater.")
 
         self.services = {
             **self.library_services,
@@ -103,6 +105,7 @@ class Program(threading.Thread):
                 any(s.initialized for s in self.indexing_services.values()),
                 all(s.initialized for s in self.processing_services.values()),
                 any(s.initialized for s in self.downloader_services.values()),
+                not (settings_manager.settings.updaters.local.enabled and settings_manager.settings.updaters.plex.enabled),
             )
         )
 
