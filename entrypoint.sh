@@ -74,9 +74,6 @@ export PATH="$PATH:/app/.venv/bin"
 
 echo "Container Initialization complete."
 
-echo "Starting Temporal Server..."
-temporal server start-dev --log-level never --ip=0.0.0.0 --namespace=riven > /dev/null 2>&1 &
-
 echo "Starting Riven (Backend)..."
 if [ "$PUID" = "0" ]; then
     cd /riven/src && poetry run python3 main.py
