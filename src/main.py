@@ -18,7 +18,6 @@ from controllers.tmdb import router as tmdb_router
 from controllers.webhooks import router as webhooks_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# from program import Program
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from program.db.db_functions import hard_reset_database
@@ -91,20 +90,17 @@ app.include_router(tmdb_router)
 app.include_router(actions_router)
 
 
-# app.include_router(metrics_router)
-
-
 class Server(uvicorn.Server):
     def install_signal_handlers(self):
         pass
 
-    @contextlib.contextmanager
-    def run_in_thread(self):
+    @contextlib.asynccontextmanager
+    async def run_in_thread(self):
         thread = threading.Thread(target=self.run, name="Riven")
         thread.start()
         try:
             while not self.started:
-                time.sleep(1e-3)
+                await asyncio.sleep(1e-3)
             yield
         except Exception as e:
             logger.error(f"Error in server thread: {e}")
@@ -112,30 +108,49 @@ class Server(uvicorn.Server):
             raise e
         finally:
             self.should_exit = True
+            thread.join()  # Ensure the thread is properly joined
             sys.exit(0)
 
 
 def signal_handler(signum, frame):
     logger.log("PROGRAM", "Exiting Gracefully.")
-    # app.program.stop()
-    asyncio.run(app.temporal.stop())
-    sys.exit(0)
+    loop = asyncio.get_event_loop()
+    loop.call_soon_threadsafe(asyncio.create_task, app.temporal.stop())
+    loop.call_soon_threadsafe(shutdown_event_loop, loop)
+
+
+def shutdown_event_loop(loop):
+    """Shut down the event loop after all tasks are done."""
+    for task in asyncio.all_tasks(loop):
+        task.add_done_callback(lambda t: loop.stop())
 
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
-config = uvicorn.Config(app, host="0.0.0.0", port=8080, log_config=None)
-server = Server(config=config)
 
-with server.run_in_thread():
+async def start_uvicorn():
+    """Start the Uvicorn server."""
+    config = uvicorn.Config(app, host="0.0.0.0", port=8080, log_config=None)
+    server = uvicorn.Server(config=config)
+    logger.info("Uvicorn server started.")
+    await server.serve()
+
+
+async def start_services():
+    """Start FastAPI and Temporal worker concurrently."""
     try:
-        # app.program.start()
-        # app.program.run()
-        asyncio.run(app.temporal.start())
+        await asyncio.gather(
+            start_uvicorn(),
+            app.temporal.start(),
+        )
     except Exception as e:
-        logger.error(f"Error in main thread: {e}")
+        logger.error(f"Error in main execution: {e}")
         logger.exception(traceback.format_exc())
+        sys.exit(1)
     finally:
-        logger.critical("Server has been stopped")
-        sys.exit(0)
+        logger.critical("All services have been stopped")
+
+
+if __name__ == "__main__":
+    asyncio.run(start_services())
