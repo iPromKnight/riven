@@ -335,17 +335,31 @@ def get_version() -> str:
         raise ValueError("Could not find version in pyproject.toml")
     return version
 
+
 class LoggingModel(Observable):
     ...
 
+
 class DatabaseModel(Observable):
     host: str = "postgresql+psycopg2://postgres:postgres@localhost/riven"
+
 
 class NotificationsModel(Observable):
     enabled: bool = False
     title: str = "Riven completed something!"
     on_item_type: List[str] = ["movie", "show", "season"]
     service_urls: List[str] = []
+
+
+class TemporalModel(Observable):
+    hostname: str = "localhost"
+    port: int = 7233
+    namespace: str = "riven"
+    workflow_retention_period_days: int = 1
+
+    @property
+    def url(self) -> str:
+        return f"{self.hostname}:{self.port}"
 
 
 class AppModel(Observable):
@@ -364,6 +378,7 @@ class AppModel(Observable):
     indexer: IndexerModel = IndexerModel()
     database: DatabaseModel = DatabaseModel()
     notifications: NotificationsModel = NotificationsModel()
+    temporal: TemporalModel = TemporalModel()
 
     def __init__(self, **data: Any):
         current_version = get_version()

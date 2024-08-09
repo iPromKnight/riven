@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import contextlib
 import signal
 import sys
@@ -17,10 +18,11 @@ from controllers.tmdb import router as tmdb_router
 from controllers.webhooks import router as webhooks_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from program import Program
+# from program import Program
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from program.db.db_functions import hard_reset_database
+from program.temporal_worker import RivenTemporalWorker
 from utils.logger import logger
 
 
@@ -69,7 +71,8 @@ app = FastAPI(
         "url": "https://www.gnu.org/licenses/gpl-3.0.en.html",
     },
 )
-app.program = Program(args)
+# app.program = Program(args)
+app.temporal = RivenTemporalWorker()
 
 app.add_middleware(LoguruMiddleware)
 app.add_middleware(
@@ -86,6 +89,8 @@ app.include_router(items_router)
 app.include_router(webhooks_router)
 app.include_router(tmdb_router)
 app.include_router(actions_router)
+
+
 # app.include_router(metrics_router)
 
 
@@ -109,10 +114,13 @@ class Server(uvicorn.Server):
             self.should_exit = True
             sys.exit(0)
 
+
 def signal_handler(signum, frame):
-    logger.log("PROGRAM","Exiting Gracefully.")
-    app.program.stop()
+    logger.log("PROGRAM", "Exiting Gracefully.")
+    # app.program.stop()
+    asyncio.run(app.temporal.stop())
     sys.exit(0)
+
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
@@ -122,8 +130,9 @@ server = Server(config=config)
 
 with server.run_in_thread():
     try:
-        app.program.start()
-        app.program.run()
+        # app.program.start()
+        # app.program.run()
+        asyncio.run(app.temporal.start())
     except Exception as e:
         logger.error(f"Error in main thread: {e}")
         logger.exception(traceback.format_exc())
