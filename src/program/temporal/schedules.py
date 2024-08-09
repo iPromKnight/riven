@@ -1,6 +1,6 @@
 import program.temporal.literals as literals
 from datetime import timedelta
-from program.temporal.workflows import RetriesWorkflow
+from program.temporal.retries import RetriesWorkflow
 from temporalio.client import (
     Client,
     Schedule,
@@ -20,12 +20,12 @@ async def create_retries_schedule(client: Client):
                 task_queue=literals.TASK_QUEUE,
             ),
             spec=ScheduleSpec(
-                intervals=[ScheduleIntervalSpec(every=timedelta(seconds=10))],
+                intervals=[ScheduleIntervalSpec(every=timedelta(minutes=10))],
             )
         ))
 
 
-class RivenWorkflowSchedules():
+class RivenWorkflowSchedules:
     def __init__(self, client: Client):
         self.client = client
 

@@ -12,19 +12,24 @@ from utils.logger import logger
 from utils import alembic_dir
 
 from .db import db, alembic
+from ..media import MediaItemData
 
 
 def _ensure_item_exists_in_db(item: MediaItem) -> bool:
     if isinstance(item, (Movie, Show)):
         with db.Session() as session:
-            return session.execute(select(func.count(MediaItem._id)).where(MediaItem.imdb_id == item.imdb_id)).scalar_one() != 0
+            return session.execute(
+                select(func.count(MediaItem._id)).where(MediaItem.imdb_id == item.imdb_id)).scalar_one() != 0
     return bool(item and item._id)
+
 
 def _get_item_type_from_db(item: MediaItem) -> str:
     with db.Session() as session:
         if item._id is None:
-            return session.execute(select(MediaItem.type).where((MediaItem.imdb_id==item.imdb_id) & (MediaItem.type.in_(["show", "movie"])))).scalar_one()
-        return session.execute(select(MediaItem.type).where(MediaItem._id==item._id)).scalar_one()
+            return session.execute(select(MediaItem.type).where(
+                (MediaItem.imdb_id == item.imdb_id) & (MediaItem.type.in_(["show", "movie"])))).scalar_one()
+        return session.execute(select(MediaItem.type).where(MediaItem._id == item._id)).scalar_one()
+
 
 def _store_item(item: MediaItem):
     if isinstance(item, (Movie, Show, Season, Episode)) and item._id is not None:
@@ -35,6 +40,7 @@ def _store_item(item: MediaItem):
         with db.Session() as session:
             _check_for_and_run_insertion_required(session, item)
 
+
 def _get_item_from_db(session, item: MediaItem):
     if not _ensure_item_exists_in_db(item):
         return None
@@ -42,24 +48,33 @@ def _get_item_from_db(session, item: MediaItem):
     type = _get_item_type_from_db(item)
     match type:
         case "movie":
-            r = session.execute(select(Movie).where(MediaItem.imdb_id==item.imdb_id).options(joinedload("*"))).unique().scalar_one()
-            r.streams = session.execute(select(Stream).where(Stream.parent_id==item._id).options(joinedload("*"))).unique().scalars().all()
+            r = session.execute(
+                select(Movie).where(MediaItem.imdb_id == item.imdb_id).options(joinedload("*"))).unique().scalar_one()
+            r.streams = session.execute(
+                select(Stream).where(Stream.parent_id == item._id).options(joinedload("*"))).unique().scalars().all()
             return r
         case "show":
-            r = session.execute(select(Show).where(MediaItem.imdb_id==item.imdb_id).options(joinedload("*"))).unique().scalar_one()
-            r.streams = session.execute(select(Stream).where(Stream.parent_id==item._id).options(joinedload("*"))).unique().scalars().all()
+            r = session.execute(
+                select(Show).where(MediaItem.imdb_id == item.imdb_id).options(joinedload("*"))).unique().scalar_one()
+            r.streams = session.execute(
+                select(Stream).where(Stream.parent_id == item._id).options(joinedload("*"))).unique().scalars().all()
             return r
         case "season":
-            r = session.execute(select(Season).where(Season._id==item._id).options(joinedload("*"))).unique().scalar_one()
-            r.streams = session.execute(select(Stream).where(Stream.parent_id==item._id).options(joinedload("*"))).unique().scalars().all()
+            r = session.execute(
+                select(Season).where(Season._id == item._id).options(joinedload("*"))).unique().scalar_one()
+            r.streams = session.execute(
+                select(Stream).where(Stream.parent_id == item._id).options(joinedload("*"))).unique().scalars().all()
             return r
         case "episode":
-            r = session.execute(select(Episode).where(Episode._id==item._id).options(joinedload("*"))).unique().scalar_one()
-            r.streams = session.execute(select(Stream).where(Stream.parent_id==item._id).options(joinedload("*"))).unique().scalars().all()
+            r = session.execute(
+                select(Episode).where(Episode._id == item._id).options(joinedload("*"))).unique().scalar_one()
+            r.streams = session.execute(
+                select(Stream).where(Stream.parent_id == item._id).options(joinedload("*"))).unique().scalars().all()
             return r
         case _:
             logger.error(f"_get_item_from_db Failed to create item from type: {type}")
             return None
+
 
 def _remove_item_from_db(imdb_id):
     try:
@@ -85,14 +100,16 @@ def _remove_item_from_db(imdb_id):
         logger.error("Failed to remove item from imdb_id, " + str(e))
         return False
 
+
 def _check_for_and_run_insertion_required(session, item: MediaItem) -> None:
     if not _ensure_item_exists_in_db(item) and isinstance(item, (Show, Movie, Season, Episode)):
-            item.store_state()
-            session.add(item)
-            session.commit()
-            logger.log("PROGRAM", f"{item.log_string} Inserted into the database.")
-            return True
+        item.store_state()
+        session.add(item)
+        session.commit()
+        logger.log("PROGRAM", f"{item.log_string} Inserted into the database.")
+        return True
     return False
+
 
 def _run_thread_with_db_item(fn, service, program, input_item: MediaItem | None):
     if input_item is not None:
@@ -118,7 +135,8 @@ def _run_thread_with_db_item(fn, service, program, input_item: MediaItem | None)
                         session.commit()
                         return
                     elif not isinstance(res, MediaItem):
-                        logger.log("PROGRAM", f"Service {service.__name__} emitted {res} from input item {item} of type {type(res).__name__}, backing off.")
+                        logger.log("PROGRAM",
+                                   f"Service {service.__name__} emitted {res} from input item {item} of type {type(res).__name__}, backing off.")
                     program._remove_from_running_items(item, service.__name__)
                     if res is not None and isinstance(res, MediaItem):
                         program._push_event_queue(Event(emitted_by=service, item=res))
@@ -146,23 +164,61 @@ def _run_thread_with_db_item(fn, service, program, input_item: MediaItem | None)
                 program._push_event_queue(Event(emitted_by=service, item=i))
         return
 
+
+def get_items_to_retry_count():
+    with db.Session() as session:
+        count = session.execute(
+            select(func.count(MediaItem._id))
+            .where(MediaItem.type.in_(["movie", "show"]))
+            .where(MediaItem.last_state != "Completed")
+        ).scalar_one()
+        logger.debug(f"Found {count} items to retry")
+        return count
+
+
+def get_items_to_retry_for_page(number_of_rows_per_page: int, page_number: int):
+    with db.Session() as session:
+        session.expire_on_commit = False
+        items_to_submit = session.execute(
+                select(MediaItem)
+                .where(MediaItem.type.in_(["movie", "show"]))
+                .where(MediaItem.last_state != "Completed")
+                .order_by(MediaItem.requested_at.desc())
+                .limit(number_of_rows_per_page)
+                .offset(page_number * number_of_rows_per_page)
+                .options(joinedload("*"))
+            ).unique().scalars().all()
+        session.expunge_all()
+        session.close()
+        return items_to_submit
+
+
+def update_item_state(item: MediaItemData):
+    with db.Session() as session:
+        item.store_state()
+        entity = MediaItem.from_dataclass(item)
+        session.merge(entity)
+        session.commit()
+        session.close()
+
+
 def hard_reset_database():
     """Resets the database to a fresh state."""
     logger.debug("Resetting Database")
-    
+
     # Drop all tables
     db.Model.metadata.drop_all(db.engine)
     logger.debug("All MediaItem tables dropped")
-    
+
     # Drop the alembic_version table
     with db.engine.connect() as connection:
         connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
     logger.debug("Alembic table dropped")
-    
+
     # Recreate all tables
     db.Model.metadata.create_all(db.engine)
     logger.debug("All tables recreated")
-    
+
     # Reinitialize Alembic
     logger.debug("Removing Alembic Directory")
     shutil.rmtree(alembic_dir, ignore_errors=True)
@@ -172,6 +228,7 @@ def hard_reset_database():
 
     logger.debug("Hard Reset Complete")
 
+
 reset = os.getenv("HARD_RESET", None)
-if reset is not None and reset.lower() in ["true","1"]:
+if reset is not None and reset.lower() in ["true", "1"]:
     hard_reset_database()

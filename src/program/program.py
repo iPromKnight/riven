@@ -13,7 +13,7 @@ from program.content import Listrr, Mdblist, Overseerr, PlexWatchlist, TraktCont
 from program.downloaders import Downloader
 from program.indexers.trakt import TraktIndexer
 from program.libraries import SymlinkLibrary
-from program.media.item import Episode, MediaItem, Movie, Season, Show, copy_item
+from program.media.item import Episode, MediaItem, Movie, Season, Show
 from program.media.state import States
 from program.scrapers import Scraping
 from program.settings.manager import settings_manager
@@ -22,6 +22,7 @@ from program.updaters import Updater
 from utils import data_dir_path
 from utils.logger import logger, scrub_logs
 from utils.notifications import notify_on_complete
+from .media.data_models import copy_item
 
 from .state_transition import process_event
 from .symlink import Symlinker

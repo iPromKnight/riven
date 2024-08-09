@@ -9,6 +9,7 @@ from typing import List, Optional, Union
 
 from sqlalchemy import select
 
+from program.media.data_models import MovieData, ShowData, SeasonData, EpisodeData
 from program.media.item import Episode, MediaItem, Movie, Season, Show
 from program.settings.manager import settings_manager
 from program.media.stream import Stream
@@ -107,7 +108,7 @@ class Symlinker:
             yield item
 
     @staticmethod
-    def should_submit(item: Union[Movie, Show, Season, Episode]) -> bool:
+    def should_submit(item: Union[MovieData, ShowData, SeasonData, EpisodeData]) -> bool:
         """Check if the item should be submitted for symlink creation."""
         if not item:
             logger.error("Invalid item sent to Symlinker: None")

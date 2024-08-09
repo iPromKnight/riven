@@ -5,18 +5,20 @@ import time
 import program.temporal.literals as literals
 from temporalio.client import Client
 
+from program.temporal.payload_converter import pydantic_data_converter
 from program.temporal.schedules import RivenWorkflowSchedules
 from program.temporal.service_container import ServiceContainer
 from temporalio.worker import Worker
-from program.temporal.activities import (
-    ScrapedActivity,
-    IndexedActivity,
-    RequestedActivity,
-    DownloadedActivity,
-    SymlinkedActivity,
-    RetriesActivity
+from program.temporal.retries import RetriesWorkflow, RetriesActivity
+from program.temporal.mediaitems import MediaItemWorkflow
+from program.temporal.mediaitems import (
+    HandleRequestedOrUnknown,
+    HandleIndexedOrPartiallyCompleted,
+    HandleScraped,
+    HandleDownloaded,
+    HandleSymlinked,
+    HandleCompleted
 )
-from program.temporal.workflows import RetriesWorkflow, MediaItemWorkflow
 from utils.logger import logger
 
 
@@ -55,7 +57,8 @@ async def wait_for_temporal_server(timeout=10, interval=1):
         try:
             client = await Client.connect(
                 target_host=f"{literals.TEMPORAL_HOST}:{literals.TEMPORAL_PORT}",
-                namespace=literals.TEMPORAL_NAMESPACE)
+                namespace=literals.TEMPORAL_NAMESPACE,
+                data_converter=pydantic_data_converter)
             logger.info("Connected to Temporal server successfully.")
             return client
         except Exception as e:
@@ -92,11 +95,12 @@ class RivenTemporalWorker:
                 MediaItemWorkflow
             ],
             activities=[
-                RequestedActivity(),
-                IndexedActivity(),
-                ScrapedActivity(),
-                DownloadedActivity(),
-                SymlinkedActivity(),
+                HandleRequestedOrUnknown(),
+                HandleIndexedOrPartiallyCompleted(),
+                HandleScraped(),
+                HandleDownloaded(),
+                HandleSymlinked(),
+                HandleCompleted(),
                 RetriesActivity(),
             ],
         )

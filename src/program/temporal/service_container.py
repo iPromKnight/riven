@@ -7,6 +7,7 @@ from program.indexers.trakt import TraktIndexer
 from program.libraries import SymlinkLibrary
 from program.scrapers import Scraping
 from program.symlink import Symlinker
+from program.temporal.payload_converter import pydantic_data_converter
 from program.updaters import Updater
 from utils.logger import logger
 
@@ -25,7 +26,8 @@ class ServiceContainer(containers.DeclarativeContainer):
     temporal_client = providers.Resource(
         Client.connect,
         target_host=f"{literals.TEMPORAL_HOST}:{literals.TEMPORAL_PORT}",
-        namespace=literals.TEMPORAL_NAMESPACE)
+        namespace=literals.TEMPORAL_NAMESPACE,
+        data_converter=pydantic_data_converter)
 
     def check_dependencies(self) -> bool:
         return self.verify_initialization()

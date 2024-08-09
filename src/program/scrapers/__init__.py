@@ -3,6 +3,7 @@ from copy import copy
 from datetime import datetime
 from typing import Dict, Generator, List, Union
 
+from program.media.data_models import MediaItemData
 from program.media.item import Episode, MediaItem, Movie, Season, Show
 from program.media.state import States
 from program.media.stream import Stream
@@ -135,12 +136,12 @@ class Scraping:
         return sorted_streams
 
     @classmethod
-    def can_we_scrape(cls, item: MediaItem) -> bool:
+    def can_we_scrape(cls, item: MediaItemData) -> bool:
         """Check if we can scrape an item."""
         return item.is_released and cls.should_submit(item)
 
     @staticmethod
-    def should_submit(item: MediaItem) -> bool:
+    def should_submit(item: MediaItemData) -> bool:
         """Check if an item should be submitted for scraping."""
         settings = settings_manager.settings.scraping
         scrape_time = 5 * 60  # 5 minutes by default

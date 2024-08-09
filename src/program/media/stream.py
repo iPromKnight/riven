@@ -3,6 +3,8 @@ from program.db.db import db
 import sqlalchemy
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from program.media.data_models import StreamData
+
 
 class Stream(db.Model):
     __tablename__ = "Stream"
@@ -18,6 +20,22 @@ class Stream(db.Model):
     parent_id: Mapped[int] = mapped_column(sqlalchemy.Integer, sqlalchemy.ForeignKey("MediaItem._id"))
     parent: Mapped["MediaItem"] = relationship("MediaItem", back_populates="streams")
 
+    def to_dataclass(self) -> StreamData:
+        return StreamData()
+
+    @classmethod
+    def from_dataclass(cls, data: StreamData) -> "Stream":
+        instance = cls.__new__(cls)
+        instance._id = data._id
+        instance.infohash = data.infohash
+        instance.raw_title = data.raw_title
+        instance.parsed_title = data.parsed_title
+        instance.rank = data.rank
+        instance.lev_ratio = data.lev_ratio
+        instance.blacklisted = data.blacklisted
+        instance.parent_id = data.parent_id
+        return instance
+
     def __init__(self, torrent: Torrent):
         self.raw_title = torrent.raw_title
         self.infohash = torrent.infohash
@@ -31,4 +49,3 @@ class Stream(db.Model):
     
     def __eq__(self, other):
         return isinstance(other, Stream) and self.infohash == other.infohash
-    
