@@ -37,6 +37,7 @@ class Overseerr:
                 self.settings.url + "/api/v1/auth/me",
                 additional_headers=self.headers,
                 timeout=30,
+                log_errors=False
             )
             if response.status_code >= 201:
                 logger.error(

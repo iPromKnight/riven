@@ -24,6 +24,8 @@ COPY pyproject.toml poetry.lock ./
 RUN touch README.md
 RUN poetry install --without dev --no-root && rm -rf $POETRY_CACHE_DIR
 
+ARG TARGETARCH
+
 # Final Image
 FROM python:3.11-alpine
 LABEL name="Riven" \
@@ -41,11 +43,16 @@ RUN apk add --no-cache \
     musl-dev \
     libffi-dev \
     python3-dev \
-    libpq-dev \ 
+    libpq-dev \
     libtorrent
 
 # Install Poetry
 RUN pip install poetry==1.8.3
+
+# Install Temporal cli
+RUN wget -q https://github.com/temporalio/cli/releases/download/v1.0.0/temporal_cli_1.0.0_linux_${TARGETARCH}.tar.gz -O temporal_cli.tar.gz \
+ && tar -xf temporal_cli.tar.gz temporal -C /usr/local/bin/ \
+ && rm -rf temporal_cli.tar.gz
 
 # Set environment variable to force color output
 ENV FORCE_COLOR=1

@@ -47,7 +47,7 @@ class Zilean:
 
         try:
             url = f"{self.settings.url}/healthchecks/ping"
-            response = ping(url=url, timeout=self.timeout, specific_rate_limiter=self.rate_limiter)
+            response = ping(url=url, timeout=self.timeout, specific_rate_limiter=self.rate_limiter, log_errors=False)
             return response.is_ok
         except Exception as e:
             logger.error(f"Zilean failed to initialize: {e}")

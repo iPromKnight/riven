@@ -71,9 +71,10 @@ class ResponseObject:
             return {}
 
 
-def _handle_request_exception() -> SimpleNamespace:
+def _handle_request_exception(log_errors=True) -> SimpleNamespace:
     """Handle exceptions during requests and return a namespace object."""
-    logger.error("Request failed", exc_info=True)
+    if log_errors:
+        logger.error("Request failed", exc_info=True)
     return SimpleNamespace(ok=False, data={}, content={}, status_code=500)
 
 
@@ -89,7 +90,8 @@ def _make_request(
         proxies=None,
         json=None,
         specific_rate_limiter: Optional[RateLimiter] = None,
-        overall_rate_limiter: Optional[RateLimiter] = None
+        overall_rate_limiter: Optional[RateLimiter] = None,
+        log_errors=True
 ) -> ResponseObject:
     session = requests.Session()
     if retry_if_failed:
@@ -106,8 +108,11 @@ def _make_request(
                     method, url, headers=additional_headers, data=data, params=params, timeout=timeout, proxies=proxies, json=json
                 )
     except requests.exceptions.RequestException as e:
-        logger.error(f"Request failed: {e}", exc_info=True)
-        response = _handle_request_exception()
+        if log_errors:
+            logger.error(f"Request failed: {e}", exc_info=True)
+        response = _handle_request_exception(log_errors)
+    except Exception as e:
+        logger.error(f"Unexpected error during request: {e}", exc_info=True)
     finally:
         session.close()
 
@@ -121,7 +126,8 @@ def ping(
         proxies=None,
         params=None,
         specific_rate_limiter: Optional[RateLimiter] = None,
-        overall_rate_limiter: Optional[RateLimiter] = None):
+        overall_rate_limiter: Optional[RateLimiter] = None,
+        log_errors=True):
     return get(
         url,
         additional_headers=additional_headers,
@@ -129,7 +135,8 @@ def ping(
         timeout=timeout,
         proxies=proxies,
         specific_rate_limiter=specific_rate_limiter,
-        overall_rate_limiter=overall_rate_limiter)
+        overall_rate_limiter=overall_rate_limiter,
+        log_errors=log_errors)
 
 
 def get(
@@ -143,7 +150,8 @@ def get(
         proxies=None,
         json=None,
         specific_rate_limiter: Optional[RateLimiter] = None,
-        overall_rate_limiter: Optional[RateLimiter] = None
+        overall_rate_limiter: Optional[RateLimiter] = None,
+        log_errors=True
 ) -> ResponseObject:
     """Requests get wrapper"""
     return _make_request(
@@ -158,7 +166,8 @@ def get(
         proxies=proxies,
         json=json,
         specific_rate_limiter=specific_rate_limiter,
-        overall_rate_limiter=overall_rate_limiter
+        overall_rate_limiter=overall_rate_limiter,
+        log_errors=log_errors
     )
 
 
@@ -172,7 +181,8 @@ def post(
         proxies=None,
         json: Optional[dict] = None,
         specific_rate_limiter: Optional[RateLimiter] = None,
-        overall_rate_limiter: Optional[RateLimiter] = None
+        overall_rate_limiter: Optional[RateLimiter] = None,
+        log_errors=True
 ) -> ResponseObject:
     """Requests post wrapper"""
     return _make_request(
@@ -186,7 +196,8 @@ def post(
         proxies=proxies,
         json=json,
         specific_rate_limiter=specific_rate_limiter,
-        overall_rate_limiter=overall_rate_limiter
+        overall_rate_limiter=overall_rate_limiter,
+        log_errors=log_errors
     )
 
 
@@ -199,7 +210,8 @@ def put(
         proxies=None,
         json=None,
         specific_rate_limiter: Optional[RateLimiter] = None,
-        overall_rate_limiter: Optional[RateLimiter] = None
+        overall_rate_limiter: Optional[RateLimiter] = None,
+        log_errors=True
 ) -> ResponseObject:
     """Requests put wrapper"""
     return _make_request(
@@ -212,7 +224,8 @@ def put(
         proxies=proxies,
         json=json,
         specific_rate_limiter=specific_rate_limiter,
-        overall_rate_limiter=overall_rate_limiter
+        overall_rate_limiter=overall_rate_limiter,
+        log_errors=log_errors
     )
 
 
@@ -225,7 +238,8 @@ def delete(
         proxies=None,
         json=None,
         specific_rate_limiter: Optional[RateLimiter] = None,
-        overall_rate_limiter: Optional[RateLimiter] = None
+        overall_rate_limiter: Optional[RateLimiter] = None,
+        log_errors=True
 ) -> ResponseObject:
     """Requests delete wrapper"""
     return _make_request(
@@ -238,7 +252,8 @@ def delete(
         proxies=proxies,
         json=json,
         specific_rate_limiter=specific_rate_limiter,
-        overall_rate_limiter=overall_rate_limiter
+        overall_rate_limiter=overall_rate_limiter,
+        log_errors=log_errors
     )
 
 

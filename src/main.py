@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from program.db.db_functions import hard_reset_database
-from program.temporal_worker import RivenTemporalWorker
+from program.temporal.temporal_worker import RivenTemporalWorker
 from utils.logger import logger
 
 

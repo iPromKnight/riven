@@ -1,9 +1,10 @@
 from temporalio import workflow
-from program.activities import ScrapedActivity, IndexedActivity, RequestedActivity, DownloadedActivity, SymlinkedActivity
+import program.temporal.literals as literals
+from program.temporal.activities import ScrapedActivity, IndexedActivity, RequestedActivity, DownloadedActivity, SymlinkedActivity
 from program.media import MediaItem, States
 
 
-@workflow.defn(name="MediaItems", sandboxed=False)
+@workflow.defn(name=literals.MEDIA_ITEM_WORKFLOW, sandboxed=False)
 class MediaItemWorkflow:
     @workflow.run
     async def run(self, item: MediaItem):

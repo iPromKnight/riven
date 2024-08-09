@@ -4,7 +4,7 @@ from program.downloaders import Downloader
 from program.indexers import TraktIndexer
 from program.media import Season
 from program.scrapers import Scraping
-from program.service_container import ServiceContainer
+from program.temporal.service_container import ServiceContainer
 from program.symlink import Symlinker
 from program.updaters import Updater
 
