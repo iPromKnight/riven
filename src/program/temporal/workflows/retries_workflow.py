@@ -8,4 +8,4 @@ from program.temporal.activities import RetriesActivity
 class RetriesWorkflow:
     @workflow.run
     async def run(self, params=None):
-        await workflow.execute_activity(RetriesActivity(), args=[],  start_to_close_timeout=timedelta(minutes=1))
+        await workflow.execute_activity(RetriesActivity(), args=[],  start_to_close_timeout=timedelta(minutes=10))
