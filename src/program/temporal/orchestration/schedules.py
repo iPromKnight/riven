@@ -1,4 +1,4 @@
-from kink import inject
+from kink import inject, di
 
 import program.temporal.orchestration.shared as shared
 from datetime import timedelta
@@ -63,11 +63,10 @@ async def _delete_overseerr_schedule(client: Client):
             logger.error(f"Error deleting Overseerr schedule: {str(e)}")
 
 
-@inject
-async def create_schedules(
-        temporal_client: Client,
-        settings_manager: SettingsManager,
-        overseerr: Overseerr):
+async def create_schedules():
+    temporal_client = di["temporal_client"]
+    settings_manager = di["SettingsManager"]
+    overseerr = di["Overseerr"]
     if settings_manager.settings.content.overseerr.enabled and overseerr.initialized:
         await _create_overseerr_schedule(temporal_client, settings_manager.settings)
     else:

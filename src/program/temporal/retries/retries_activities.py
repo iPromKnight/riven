@@ -14,4 +14,4 @@ async def obtain_and_retry_partial_mediaitems():
     for page_number in range(0, (item_count // shared.NUMBER_OF_ROWS_PER_PAGE) + 1):
         items_to_submit = PostgresRepository.get_items_to_retry_for_page(shared.NUMBER_OF_ROWS_PER_PAGE, page_number)
         for item in items_to_submit:
-            await start_media_item_workflow(item)
+            await start_media_item_workflow(item, "RetryLibrary")

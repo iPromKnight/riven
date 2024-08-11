@@ -23,6 +23,7 @@ from starlette.requests import Request
 from utils.cli import handle_args
 from utils.logger import logger
 
+
 class LoguruMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         start_time = time.time()
@@ -73,6 +74,7 @@ app.include_router(tmdb_router)
 app.include_router(actions_router)
 app.include_router(ws_router)
 
+
 class Server(uvicorn.Server):
     def install_signal_handlers(self):
         pass
@@ -93,10 +95,11 @@ class Server(uvicorn.Server):
             self.should_exit = True
             sys.exit(0)
 
+
 async def start_riven():
     """Start the Riven worker asynchronously."""
     await app.riven.start()
-    await app.riven.worker.run()  # Assuming `run()` is also an async method
+
 
 async def shutdown():
     """Handle the shutdown of both Uvicorn and the Riven worker."""
@@ -106,10 +109,12 @@ async def shutdown():
     # Here, we ensure Uvicorn will stop by signaling to its `should_exit` flag
     server.should_exit = True
 
+
 def signal_handler(signum, frame):
     logger.log("PROGRAM", "Exiting Gracefully.")
     loop = asyncio.get_event_loop()
     asyncio.run_coroutine_threadsafe(shutdown(), loop)
+
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)

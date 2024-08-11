@@ -3,23 +3,21 @@ import os
 import subprocess
 import threading
 import time
+import program.temporal.orchestration.shared as shared
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
-
 from program.settings.manager import settings_manager
 from program.settings.models import get_version
 from program.temporal.orchestration import create_schedules
 from program.temporal.service_container import ServiceContainer
-import program.temporal.orchestration.shared as shared
 from temporalio.client import Client
 from program.db.db import run_migrations
 from temporalio.worker import Worker
-
 from utils import data_dir_path
 from utils.logger import logger, scrub_logs
-from program.temporal.retries import retries_activities, RetriesWorkflow
-from program.temporal.overseer import overseerr_activities, OverseerrWorkflow
-from program.temporal.mediaitems import media_item_activities, MediaItemWorkflow
+from program.temporal.retries import RetriesWorkflow, obtain_and_retry_partial_mediaitems
+from program.temporal.overseer import OverseerrWorkflow, scan_overseerr_requests
+from program.temporal.mediaitems import MediaItemWorkflow, process_media_item_activity, get_media_item_from_db_activity, store_media_item_activity
 
 
 class RivenTemporalWorker:
@@ -85,20 +83,22 @@ class RivenTemporalWorker:
                 OverseerrWorkflow,
             ],
             activities=[
-                *retries_activities(),
-                *overseerr_activities(),
-                *media_item_activities(),
+                process_media_item_activity,
+                obtain_and_retry_partial_mediaitems,
+                scan_overseerr_requests,
+                get_media_item_from_db_activity,
+                store_media_item_activity
             ],
             activity_executor=ThreadPoolExecutor(max_workers=100),
             max_cached_workflows=10,
             max_concurrent_workflow_tasks=10,
         )
 
-        # Prom. do this here, as it injects a temporal client and needs the service running to connect =)
+        # Prom: do this here, as it injects a temporal client and needs the service running to connect =)
         if not self.container:
             await self.setup_container()
 
-        await create_schedules(client)
+        await create_schedules()
 
         logger.debug("Worker created successfully.")
 

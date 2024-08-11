@@ -6,21 +6,21 @@ from typing import List, Optional, Self
 import asyncio
 
 import sqlalchemy
-from program.db.db import db
 from program.media.state import States
 from RTN import parse
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from program.media.subtitle import Subtitle
-from .stream import  Stream, StreamRelation
+from .riven_base_mixin import RivenBaseMixin
+from .stream import Stream, StreamRelation
 from controllers.ws import manager
 
 from utils.logger import logger
+from ..db.db import db
 
 
-class MediaItem(db.Model):
+class MediaItem(RivenBaseMixin, db.Model):
     """MediaItem class"""
-    __tablename__ = "MediaItem"
     _id: Mapped[int] = mapped_column(primary_key=True)
     item_id: Mapped[str] = mapped_column(sqlalchemy.String, nullable=False)
     number: Mapped[Optional[int]] = mapped_column(sqlalchemy.Integer, nullable=True)
@@ -32,7 +32,8 @@ class MediaItem(db.Model):
     scraped_times: Mapped[Optional[int]] = mapped_column(sqlalchemy.Integer, default=0)
     active_stream: Mapped[Optional[dict[str]]] = mapped_column(sqlalchemy.JSON, nullable=True)
     streams: Mapped[list[Stream]] = relationship(secondary="StreamRelation", back_populates="parents")
-    blacklisted_streams: Mapped[list[Stream]] = relationship(secondary="StreamBlacklistRelation", back_populates="blacklisted_parents")
+    blacklisted_streams: Mapped[list[Stream]] = relationship(secondary="StreamBlacklistRelation",
+                                                             back_populates="blacklisted_parents")
     symlinked: Mapped[Optional[bool]] = mapped_column(sqlalchemy.Boolean, default=False)
     symlinked_at: Mapped[Optional[datetime]] = mapped_column(sqlalchemy.DateTime, nullable=True)
     symlinked_times: Mapped[Optional[int]] = mapped_column(sqlalchemy.Integer, default=0)
@@ -60,16 +61,33 @@ class MediaItem(db.Model):
 
     __mapper_args__ = {
         "polymorphic_identity": "mediaitem",
-        "polymorphic_on":"type",
-        "with_polymorphic":"*",
+        "polymorphic_on": "type",
+        "with_polymorphic": "*",
     }
+
+    @staticmethod
+    def from_dict(item: dict):
+        item_type = item.get("type")
+        if not item_type:
+            return MediaItem(item)
+        if item_type == "movie":
+            return Movie(item)
+        elif item_type == "show":
+            return Show(item)
+        elif item_type == "season":
+            return Season(item)
+        elif item_type == "episode":
+            return Episode(item)
+        else:
+            return MediaItem(item)
+
     def __init__(self, item: dict) -> None:
         self.requested_at = item.get("requested_at", datetime.now())
         self.requested_by = item.get("requested_by")
 
         self.indexed_at = None
 
-        self.scraped_at  = None
+        self.scraped_at = None
         self.scraped_times = 0
         self.active_stream = item.get("active_stream", {})
         self.streams: List[Stream] = []
@@ -79,13 +97,13 @@ class MediaItem(db.Model):
         self.symlinked_at = None
         self.symlinked_times = 0
 
-        self.file  = None
+        self.file = None
         self.folder = None
         self.is_anime = item.get("is_anime", False)
 
         # Media related
         self.title = item.get("title")
-        self.imdb_id =  item.get("imdb_id")
+        self.imdb_id = item.get("imdb_id")
         if self.imdb_id:
             self.imdb_link = f"https://www.imdb.com/title/{self.imdb_id}/"
             if not hasattr(self, "item_id"):
@@ -114,7 +132,7 @@ class MediaItem(db.Model):
         if self.last_state != self._determine_state().name:
             asyncio.run(manager.send_item_update(json.dumps(self.to_dict())))
         self.last_state = self._determine_state().name
-        
+
     def is_stream_blacklisted(self, stream: Stream):
         """Check if a stream is blacklisted for this item."""
         return stream in self.blacklisted_streams
@@ -144,7 +162,7 @@ class MediaItem(db.Model):
             logger.log("ITEM", time_message)
             return False
         return True
-    
+
     @property
     def is_released_nolog(self):
         """Check if an item has been released."""
@@ -185,7 +203,7 @@ class MediaItem(db.Model):
         self.overseerr_id = getattr(other, "overseerr_id", None)
 
     def is_scraped(self):
-        return (len(self.streams) > 0 
+        return (len(self.streams) > 0
                 and any(not stream in self.blacklisted_streams for stream in self.streams))
 
     def to_dict(self):
@@ -289,14 +307,14 @@ class MediaItem(db.Model):
 
     def __hash__(self):
         return hash(self.item_id)
-    
+
     def reset(self, reset_times: bool = True):
         """Reset item attributes for rescraping."""
         if self.symlink_path:
             if Path(self.symlink_path).exists():
                 Path(self.symlink_path).unlink()
             self.set("symlink_path", None)
-    
+
         for subtitle in self.subtitles:
             subtitle.remove()
 
@@ -305,7 +323,8 @@ class MediaItem(db.Model):
         self.set("alternative_folder", None)
 
         if hasattr(self, "active_stream"):
-            stream: Stream = next((stream for stream in self.streams if stream.infohash == self.active_stream["hash"]), None)
+            stream: Stream = next((stream for stream in self.streams if stream.infohash == self.active_stream["hash"]),
+                                  None)
             if stream:
                 self.blacklist_stream(stream)
 
@@ -327,12 +346,13 @@ class MediaItem(db.Model):
 
     @property
     def collection(self):
-        return self.parent.collection if self.parent else self.item_id
+        if self.get("parent"):
+            return self.parent.collection
+        return self.item_id
 
 
 class Movie(MediaItem):
     """Movie class"""
-    __tablename__ = "Movie"
     _id: Mapped[int] = mapped_column(sqlalchemy.ForeignKey("MediaItem._id"), primary_key=True)
     __mapper_args__ = {
         "polymorphic_identity": "movie",
@@ -355,9 +375,9 @@ class Movie(MediaItem):
     def __hash__(self):
         return super().__hash__()
 
+
 class Show(MediaItem):
     """Show class"""
-    __tablename__ = "Show"
     _id: Mapped[int] = mapped_column(sqlalchemy.ForeignKey("MediaItem._id"), primary_key=True)
     seasons: Mapped[List["Season"]] = relationship(lazy=False, back_populates="parent", foreign_keys="Season.parent_id")
 
@@ -385,8 +405,8 @@ class Show(MediaItem):
         if all(season.state == States.Completed for season in self.seasons):
             return States.Completed
         if any(
-            season.state in (States.Completed, States.PartiallyCompleted)
-            for season in self.seasons
+                season.state in (States.Completed, States.PartiallyCompleted)
+                for season in self.seasons
         ):
             return States.PartiallyCompleted
         if all(season.state == States.Symlinked for season in self.seasons):
@@ -465,16 +485,16 @@ class Show(MediaItem):
 
 class Season(MediaItem):
     """Season class"""
-    __tablename__ = "Season"
     _id: Mapped[int] = mapped_column(sqlalchemy.ForeignKey("MediaItem._id"), primary_key=True)
     parent_id: Mapped[int] = mapped_column(sqlalchemy.ForeignKey("Show._id"), use_existing_column=True)
     parent: Mapped["Show"] = relationship(lazy=False, back_populates="seasons", foreign_keys="Season.parent_id")
-    episodes: Mapped[List["Episode"]] = relationship(lazy=False, back_populates="parent", foreign_keys="Episode.parent_id")
+    episodes: Mapped[List["Episode"]] = relationship(lazy=False, back_populates="parent",
+                                                     foreign_keys="Episode.parent_id")
     __mapper_args__ = {
         "polymorphic_identity": "season",
         "polymorphic_load": "inline",
     }
-    
+
     def store_state(self) -> None:
         for episode in self.episodes:
             episode.store_state()
@@ -566,7 +586,6 @@ class Season(MediaItem):
 
 class Episode(MediaItem):
     """Episode class"""
-    __tablename__ = "Episode"
     _id: Mapped[int] = mapped_column(sqlalchemy.ForeignKey("MediaItem._id"), primary_key=True)
     parent_id: Mapped[int] = mapped_column(sqlalchemy.ForeignKey("Season._id"), use_existing_column=True)
     parent: Mapped["Season"] = relationship(lazy=False, back_populates="episodes", foreign_keys="Episode.parent_id")
@@ -580,7 +599,7 @@ class Episode(MediaItem):
         self.type = "episode"
         self.number = item.get("number", None)
         self.file = item.get("file", None)
-        self.item_id = self.number# , parent_id=item.get("parent_id"))
+        self.item_id = self.number  # , parent_id=item.get("parent_id"))
         super().__init__(item)
         if self.parent and isinstance(self.parent, Season):
             self.is_anime = self.parent.parent.is_anime

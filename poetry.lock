@@ -770,6 +770,20 @@ files = [
 colors = ["colorama (>=0.4.6)"]
 
 [[package]]
+name = "kink"
+version = "0.8.0"
+description = "Dependency injection for python."
+optional = false
+python-versions = "<4.0,>=3.8"
+files = [
+    {file = "kink-0.8.0-py3-none-any.whl", hash = "sha256:c0b959cd291e057a72c501ffc77498416ef5afd5f30476a7d5e6fc3be09001a5"},
+    {file = "kink-0.8.0.tar.gz", hash = "sha256:5aa6dcb4c0abde9ed15c4f73e52f163802c91fd7d804b3e1e4e8e78b9cef48f2"},
+]
+
+[package.dependencies]
+typing_extensions = ">=4.9.0,<5.0.0"
+
+[[package]]
 name = "levenshtein"
 version = "0.25.1"
 description = "Python extension for computing string edit distances and similarities."
@@ -1383,6 +1397,26 @@ files = [
 
 [package.extras]
 twisted = ["twisted"]
+
+[[package]]
+name = "protobuf"
+version = "5.27.3"
+description = ""
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "protobuf-5.27.3-cp310-abi3-win32.whl", hash = "sha256:dcb307cd4ef8fec0cf52cb9105a03d06fbb5275ce6d84a6ae33bc6cf84e0a07b"},
+    {file = "protobuf-5.27.3-cp310-abi3-win_amd64.whl", hash = "sha256:16ddf3f8c6c41e1e803da7abea17b1793a97ef079a912e42351eabb19b2cffe7"},
+    {file = "protobuf-5.27.3-cp38-abi3-macosx_10_9_universal2.whl", hash = "sha256:68248c60d53f6168f565a8c76dc58ba4fa2ade31c2d1ebdae6d80f969cdc2d4f"},
+    {file = "protobuf-5.27.3-cp38-abi3-manylinux2014_aarch64.whl", hash = "sha256:b8a994fb3d1c11156e7d1e427186662b64694a62b55936b2b9348f0a7c6625ce"},
+    {file = "protobuf-5.27.3-cp38-abi3-manylinux2014_x86_64.whl", hash = "sha256:a55c48f2a2092d8e213bd143474df33a6ae751b781dd1d1f4d953c128a415b25"},
+    {file = "protobuf-5.27.3-cp38-cp38-win32.whl", hash = "sha256:043853dcb55cc262bf2e116215ad43fa0859caab79bb0b2d31b708f128ece035"},
+    {file = "protobuf-5.27.3-cp38-cp38-win_amd64.whl", hash = "sha256:c2a105c24f08b1e53d6c7ffe69cb09d0031512f0b72f812dd4005b8112dbe91e"},
+    {file = "protobuf-5.27.3-cp39-cp39-win32.whl", hash = "sha256:c84eee2c71ed83704f1afbf1a85c3171eab0fd1ade3b399b3fad0884cbcca8bf"},
+    {file = "protobuf-5.27.3-cp39-cp39-win_amd64.whl", hash = "sha256:af7c0b7cfbbb649ad26132e53faa348580f844d9ca46fd3ec7ca48a1ea5db8a1"},
+    {file = "protobuf-5.27.3-py3-none-any.whl", hash = "sha256:8572c6533e544ebf6899c360e91d6bcbbee2549251643d32c52cf8a5de295ba5"},
+    {file = "protobuf-5.27.3.tar.gz", hash = "sha256:82460903e640f2b7e34ee81a947fdaad89de796d324bcbc38ff5430bcdead82c"},
+]
 
 [[package]]
 name = "psutil"
@@ -2352,6 +2386,30 @@ docs = ["sphinx", "sphinx-rtd-theme", "sphinxcontrib-programoutput"]
 test = ["importlib-metadata (>=4.6)", "lxml", "mypy", "pytest (>=6.0)", "pytest-cov", "pytest-flakes", "sympy", "vcrpy (>=1.6.1)"]
 
 [[package]]
+name = "temporalio"
+version = "1.6.0"
+description = "Temporal.io Python SDK"
+optional = false
+python-versions = "<4.0,>=3.8"
+files = [
+    {file = "temporalio-1.6.0-cp38-abi3-macosx_10_9_x86_64.whl", hash = "sha256:50207806c5b9d701226ed2aed1fce44c688225ab9a370b014b06e51872b98ea7"},
+    {file = "temporalio-1.6.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:499253385dd3ca1827d34a05ae61350d54040e0d6a11502f04cbafa7b35be114"},
+    {file = "temporalio-1.6.0-cp38-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:8fb097b97f833483cd500af2460a0996f812e8019327d893844a21b1c7cd9868"},
+    {file = "temporalio-1.6.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:6b25d451170ecdf8443f1ed09f75ea708e8679c26636e7aa326bc89bd6bd0c84"},
+    {file = "temporalio-1.6.0-cp38-abi3-win_amd64.whl", hash = "sha256:b5ae0bea0665a0bc87d80e7d18870b32eec631694abc0610ee39235e99cc304b"},
+    {file = "temporalio-1.6.0.tar.gz", hash = "sha256:a6f24ea91eb1dd1345c68f4ceb21dd2a11a84cda0d6d963d6e570a0c156a80f0"},
+]
+
+[package.dependencies]
+protobuf = ">=3.20"
+types-protobuf = ">=3.20"
+typing-extensions = ">=4.2.0,<5.0.0"
+
+[package.extras]
+grpc = ["grpcio (>=1.59.0,<2.0.0)"]
+opentelemetry = ["opentelemetry-api (>=1.11.1,<2.0.0)", "opentelemetry-sdk (>=1.11.1,<2.0.0)"]
+
+[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -2360,6 +2418,17 @@ python-versions = ">=3.7"
 files = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
     {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
+]
+
+[[package]]
+name = "types-protobuf"
+version = "5.27.0.20240626"
+description = "Typing stubs for protobuf"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "types-protobuf-5.27.0.20240626.tar.gz", hash = "sha256:683ba14043bade6785e3f937a7498f243b37881a91ac8d81b9202ecf8b191e9c"},
+    {file = "types_protobuf-5.27.0.20240626-py3-none-any.whl", hash = "sha256:688e8f7e8d9295db26bc560df01fb731b27a25b77cbe4c1ce945647f7024f5c1"},
 ]
 
 [[package]]
@@ -2788,4 +2857,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "756aa9675caaf95b6e9ac74cdbe1593c337df9557ad0395bb0dfcb6e77a18e0c"
+content-hash = "e7f6786c28c58876ddec9c093995bec1f9692d518e7e011e5728854717bf1d80"

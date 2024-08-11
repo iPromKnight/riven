@@ -213,18 +213,15 @@ class PostgresRepository:
     @staticmethod
     def process_meta_data():
         from program.media import MediaItem, Episode, Season, Movie, Show
-        from program.indexers import TraktIndexer
-        from program.libraries import SymlinkLibrary
-        from program.settings.manager import SettingsManager
         with db.Session() as session:
             res = session.execute(select(func.count(MediaItem._id))).scalar_one()
             added = []
             if res == 0:
-                for item in di[SymlinkLibrary].run():
-                    if di[SettingsManager].settings.map_metadata:
+                for item in di["SymlinkLibrary"].run():
+                    if di["SettingsManager"].settings.map_metadata:
                         if isinstance(item, (Movie, Show)):
                             try:
-                                item = next(di[TraktIndexer].run(item))
+                                item = next(di["TraktIndexer"].run(item))
                             except StopIteration as e:
                                 logger.error(f"Failed to enhance metadata for {item.title} ({item.item_id}): {e}")
                                 continue

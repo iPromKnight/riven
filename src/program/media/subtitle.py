@@ -1,7 +1,8 @@
 from pathlib import Path
-from program.db.db import db
 from sqlalchemy import Integer, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from program.db.db import db
 
 
 class Subtitle(db.Model):

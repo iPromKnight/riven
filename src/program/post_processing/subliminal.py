@@ -7,6 +7,7 @@ from program.settings.manager import settings_manager
 from utils import root_dir
 from loguru import logger
 
+
 class Subliminal:
     def __init__(self):
         self.key = "subliminal"
@@ -15,11 +16,11 @@ class Subliminal:
         self.settings = settings_manager.settings.post_processing.subliminal
         self.languages = set(create_language_from_string(lang) for lang in self.settings.languages)
         self.initialized = self.enabled
-        
+
     @property
     def enabled(self):
         return self.settings.enabled
-    
+
     def scan_files_and_download(self):
         # Do we want this?
         pass
@@ -32,13 +33,14 @@ class Subliminal:
         #     video.name = original_name
         #     for subtitle in saved:
         #         logger.info(f"Downloaded ({subtitle.language}) subtitle for {pathlib.Path(video.symlink).stem}")
-        
+
     def get_subtitles(self, item):
         if item.type in ["movie", "episode"]:
             real_name = pathlib.Path(item.symlink_path).resolve().name
             video = Video.fromname(real_name)
             video.symlink_path = item.symlink_path
-            video.subtitle_languages = get_existing_subtitles(pathlib.Path(item.symlink_path).stem, pathlib.Path(item.symlink_path).parent)
+            video.subtitle_languages = get_existing_subtitles(pathlib.Path(item.symlink_path).stem,
+                                                              pathlib.Path(item.symlink_path).parent)
             return download_best_subtitles([video], self.languages)
         return {}
 
@@ -50,7 +52,6 @@ class Subliminal:
             for subtitle in saved:
                 logger.info(f"Downloaded ({subtitle.language}) subtitle for {pathlib.Path(item.symlink_path).stem}")
             video.name = original_name
-            
 
     def run(self, item):
         subtitles = self.get_subtitles(item)
@@ -59,7 +60,7 @@ class Subliminal:
             item.subtitles.append(Subtitle({key: None}))
         self.save_subtitles(subtitles, item)
         self.update_item(item)
-        
+
     def update_item(self, item):
         folder = pathlib.Path(item.symlink_path).parent
         subs = get_existing_subtitles(pathlib.Path(item.symlink_path).stem, folder)
@@ -72,6 +73,7 @@ class Subliminal:
 
     def should_submit(item):
         return item.type in ["movie", "episode"] and not any(subtitle.file is not None for subtitle in item.subtitles)
+
 
 def _scan_videos(directory):
     """
@@ -88,11 +90,12 @@ def _scan_videos(directory):
                 video_name = pathlib.Path(video_path).resolve().name
                 video = Video.fromname(video_name)
                 video.symlink = pathlib.Path(video_path)
-                
+
                 # Scan for subtitle files
                 video.subtitle_languages = get_existing_subtitles(video.symlink.stem, pathlib.Path(root))
                 videos.append(video)
     return videos
+
 
 def create_language_from_string(lang: str) -> Language:
     try:
@@ -104,15 +107,15 @@ def create_language_from_string(lang: str) -> Language:
         logger.error(f"Invalid language code: {lang}")
         return None
 
+
 def get_existing_subtitles(filename: str, path: pathlib.Path) -> set[Language]:
     subtitle_languages = set()
     for file in path.iterdir():
         if file.stem.startswith(filename) and file.suffix == '.srt':
-                parts = file.name.split('.')
-                if len(parts) > 2:
-                    lang_code = parts[-2]
-                    language = create_language_from_string(lang_code)
-                    language.file = file.name
-                    subtitle_languages.add(language)
+            parts = file.name.split('.')
+            if len(parts) > 2:
+                lang_code = parts[-2]
+                language = create_language_from_string(lang_code)
+                language.file = file.name
+                subtitle_languages.add(language)
     return subtitle_languages
-
