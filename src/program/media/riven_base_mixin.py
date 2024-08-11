@@ -8,7 +8,7 @@ class AlchemyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj.__class__, DeclarativeMeta):
             fields = {}
-            for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata']:
+            for field in [x for x in dir(obj) if (not x.startswith('_') or x == '_id') and x != 'metadata']:
                 data = obj.__getattribute__(field)
                 try:
                     json.dumps(data)
@@ -28,3 +28,6 @@ class RivenBaseMixin:
     def to_temporal_dict(self):
         json_item = json.dumps(self, cls=AlchemyEncoder)
         return json.loads(json_item)
+
+    def log_identifier(self):
+        return {getattr(self, 'log_string', None) or self.item_id}

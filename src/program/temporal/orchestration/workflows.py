@@ -1,4 +1,4 @@
-from kink import inject, di
+from kink import di
 from temporalio.client import Client
 from temporalio.common import WorkflowIDReusePolicy
 from program.media import MediaItem
@@ -19,7 +19,6 @@ async def start_media_item_workflow(entity: MediaItem, started_by: str):
             execution_timeout=shared.MEDIA_ITEM_EXECUTION_TIMEOUT,
             id_reuse_policy=WorkflowIDReusePolicy.TERMINATE_IF_RUNNING,
             id=workflow_id)
-        logger.info(f"Running {shared.MEDIA_ITEM_WORKFLOW} workflow for item id: {workflow_id}")
     except Exception as e:
         if "Workflow execution already started" in str(e):
             return

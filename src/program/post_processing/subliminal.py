@@ -71,7 +71,7 @@ class Subliminal:
                     subtitle.file = (folder / lang.file).__str__()
                     break
 
-    def should_submit(item):
+    def should_submit(self, item):
         return item.type in ["movie", "episode"] and not any(subtitle.file is not None for subtitle in item.subtitles)
 
 

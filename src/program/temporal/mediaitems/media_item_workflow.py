@@ -26,7 +26,8 @@ class MediaItemWorkflow:
         self.item = MediaItem.from_dict(item)
         self.existing_item = None
         self.started_by = started_by
-        logger.info(f"Running MediaItemWorkflow for item: {self.item.item_id}, emitted by service: {self.started_by}")
+        logger.log("PROGRAM",
+                   f"Running media item workflow for {self.item.log_identifier()}, emitted by service {self.started_by}")
 
         try:
             await self.__get_existing_item()
@@ -37,27 +38,31 @@ class MediaItemWorkflow:
             raise ApplicationError(f"Error running MediaItemWorkflow: {e}")
 
     async def __get_existing_item(self):
-        if self.item._id:
-            logger.log("DATABASE", f"Getting existing item from database with id: {self.item._id}")
-            self.existing_item = await workflow.execute_local_activity(
+        if self.item.imdb_id:
+            existing_item: dict = await workflow.execute_local_activity(
                 get_media_item_from_db_activity,
-                arg=self.item._id,
+                arg=self.item.imdb_id,
                 start_to_close_timeout=ACTIVITY_EXECUTION_TIMEOUT,
                 retry_policy=ACTIVITY_RETRY_POLICY
             )
+            if existing_item:
+                self.existing_item = MediaItem.from_dict(existing_item)
 
     async def __run_process_queue(self):
         existing_item = self.existing_item
+
         if existing_item:
             existing_item = existing_item.to_temporal_dict()
+
         item = self.item.to_temporal_dict()
 
-        self.item = await workflow.execute_local_activity(
+        item: dict = await workflow.execute_local_activity(
             process_media_item_activity,
             args=[existing_item, self.started_by, item],
             start_to_close_timeout=ACTIVITY_EXECUTION_TIMEOUT,
             retry_policy=ACTIVITY_RETRY_POLICY
         )
+        self.item = MediaItem.from_dict(item)
 
     async def __store_item(self):
         await workflow.execute_local_activity(

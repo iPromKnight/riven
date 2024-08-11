@@ -67,19 +67,20 @@ class MediaItem(RivenBaseMixin, db.Model):
 
     @staticmethod
     def from_dict(item: dict):
+        item_class_map = {
+            "movie": Movie,
+            "show": Show,
+            "season": Season,
+            "episode": Episode
+        }
+
         item_type = item.get("type")
-        if not item_type:
-            return MediaItem(item)
-        if item_type == "movie":
-            return Movie(item)
-        elif item_type == "show":
-            return Show(item)
-        elif item_type == "season":
-            return Season(item)
-        elif item_type == "episode":
-            return Episode(item)
-        else:
-            return MediaItem(item)
+        item_class = item_class_map.get(item_type, MediaItem)
+
+        new_item = item_class(item)
+        new_item._id = item.get("_id", None)
+
+        return new_item
 
     def __init__(self, item: dict) -> None:
         self.requested_at = item.get("requested_at", datetime.now())
@@ -130,7 +131,7 @@ class MediaItem(RivenBaseMixin, db.Model):
 
     def store_state(self) -> None:
         if self.last_state != self._determine_state().name:
-            asyncio.run(manager.send_item_update(json.dumps(self.to_dict())))
+            asyncio.create_task(manager.send_item_update(json.dumps(self.to_dict())))
         self.last_state = self._determine_state().name
 
     def is_stream_blacklisted(self, stream: Stream):

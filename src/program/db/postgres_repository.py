@@ -69,11 +69,9 @@ class PostgresRepository:
 
     @staticmethod
     def update_item_in_db(item):
-        from program.media import MediaItem
         with db.Session() as session:
             item.store_state()
-            entity = MediaItem.from_pydantic(item)
-            session.merge(entity)
+            session.merge(item)
             session.commit()
             session.close()
 
@@ -170,9 +168,11 @@ class PostgresRepository:
             else:
                 item = session.execute(
                     select(MediaItem).where(MediaItem.imdb_id == imdb_id)
-                ).scalar_one_or_none()
+                    .options(joinedload("*"))
+                ).unique().scalar_one_or_none()
             if item:
                 session.expunge(item)
+                session.close()
                 return item
             return None
 
@@ -258,7 +258,7 @@ class PostgresRepository:
 
         # Drop the alembic_version table
         with db.engine.connect() as connection:
-            connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
+            connection.execute(text("DROP TABLE IF EXISTS alembic_version CASCADE"))
         logger.log("DATABASE", "Alembic table dropped")
 
         # Recreate all tables

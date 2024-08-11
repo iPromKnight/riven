@@ -13,7 +13,6 @@ class OverseerrWorkflow:
     async def run(self, params=None):
         from program.temporal.overseer import scan_overseerr_requests
         try:
-            logger.info("Running OverseerrWorkflow")
             await workflow.execute_activity(
                 scan_overseerr_requests,
                 start_to_close_timeout=timedelta(minutes=3),

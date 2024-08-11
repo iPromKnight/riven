@@ -11,10 +11,8 @@ SERVICE_NAME = "Overseerr"
 async def scan_overseerr_requests():
     from program.media import MediaItem
     overseerr: Overseerr = di[SERVICE_NAME]
-    logger.info("Scanning overseerr requests")
+    logger.log("DISCOVERY", "Scanning for Overseerr requests")
     for request in overseerr.run():
         if not isinstance(request, MediaItem):
             continue
         await start_media_item_workflow(request, SERVICE_NAME)
-        logger.info(f"Started MediaItemWorkflow for item: {request.item_id}")
-    logger.info("Overseerr scan completed.")

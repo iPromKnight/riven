@@ -12,20 +12,25 @@ from program.temporal.orchestration import shared
 from program.updaters import Updater
 
 
+def register_service(name, service_instance):
+    di[name] = service_instance
+    di[service_instance.__class__] = service_instance
+
+
 class ServiceContainer:
     async def bootstrap(self):
-        di["Overseerr"] = Overseerr()
-        di["PlexWatchlist"] = PlexWatchlist()
-        di["Listrr"] = Listrr()
-        di["Mdblist"] = Mdblist()
-        di["TraktIndexer"] = TraktIndexer()
-        di["Downloader"] = Downloader()
-        di["SymlinkLibrary"] = SymlinkLibrary()
-        di["Scraping"] = Scraping()
-        di["Symlinker"] = Symlinker()
-        di["Updater"] = Updater()
-        di["SettingsManager"] = SettingsManager()
-        di["PostProcessing"] = PostProcessing()
+        register_service("Overseerr", Overseerr())
+        register_service("PlexWatchlist", PlexWatchlist())
+        register_service("Listrr", Listrr())
+        register_service("Mdblist", Mdblist())
+        register_service("TraktIndexer", TraktIndexer())
+        register_service("Downloader", Downloader())
+        register_service("SymlinkLibrary", SymlinkLibrary())
+        register_service("Scraping", Scraping())
+        register_service("Symlinker", Symlinker())
+        register_service("Updater", Updater())
+        register_service("SettingsManager", SettingsManager())
+        register_service("PostProcessing", PostProcessing())
         await self.__create_temporal_client()
         self.__create_service_collections()
         self.__validate_services()
@@ -40,25 +45,25 @@ class ServiceContainer:
     @staticmethod
     def __create_service_collections():
         di["requesting_services"] = {
-            "Overseerr": di["Overseerr"],
-            "PlexWatchlist": di["PlexWatchlist"],
-            "Listrr": di["Listrr"],
-            "Mdblist": di["Mdblist"],
+            "Overseerr": di[Overseerr],
+            "PlexWatchlist": di[PlexWatchlist],
+            "Listrr": di[Listrr],
+            "Mdblist": di[Mdblist],
         }
 
         di["processing_services"] = {
-            "Scraping": di["Scraping"],
-            "Symlinker": di["Symlinker"],
-            "Updater": di["Updater"],
-            "Downloader": di["Downloader"],
+            "Scraping": di[Scraping],
+            "Symlinker": di[Symlinker],
+            "Updater": di[Updater],
+            "Downloader": di[Downloader],
         }
 
         di["library_services"] = {
-            "SymlinkLibrary": di["SymlinkLibrary"],
+            "SymlinkLibrary": di[SymlinkLibrary],
         }
 
         di["postprocessing_services"] = {
-            "PostProcessing": di["PostProcessing"],
+            "PostProcessing": di[PostProcessing],
         }
 
     @staticmethod

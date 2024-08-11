@@ -13,7 +13,6 @@ class RetriesWorkflow:
     async def run(self, params=None):
         from program.temporal.retries.retries_activities import obtain_and_retry_partial_mediaitems
         try:
-            logger.info("Running RetriesWorkflow")
             await workflow.execute_activity(
                 obtain_and_retry_partial_mediaitems,
                 start_to_close_timeout=timedelta(minutes=1),
