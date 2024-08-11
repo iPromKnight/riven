@@ -142,41 +142,7 @@ class Program(threading.Thread):
         logger.log("PROGRAM", "Riven started!")
 
         run_migrations()
-        with db.Session() as session:
-            res = session.execute(select(func.count(MediaItem._id))).scalar_one()
-            added = []
-            if res == 0:
-                for item in self.services[SymlinkLibrary].run():
-                    if settings_manager.settings.map_metadata:
-                        if isinstance(item, (Movie, Show)):
-                            try:
-                                item = next(self.services[TraktIndexer].run(item))
-                            except StopIteration as e:
-                                logger.error(f"Failed to enhance metadata for {item.title} ({item.item_id}): {e}")
-                                continue
-                            if item.item_id in added:
-                                logger.error(f"Cannot enhance metadata, {item.title} ({item.item_id}) contains multiple folders. Manual resolution required. Skipping.")
-                                continue
-                            added.append(item.item_id)
-                            item.store_state()
-                            session.add(item)
-                            logger.debug(f"Mapped metadata to {item.type.title()}: {item.log_string}")
-                session.commit()
 
-            movies_symlinks = session.execute(select(func.count(Movie._id)).where(Movie.symlinked == True)).scalar_one() # noqa
-            episodes_symlinks = session.execute(select(func.count(Episode._id)).where(Episode.symlinked == True)).scalar_one() # noqa
-            total_symlinks = movies_symlinks + episodes_symlinks
-            total_movies = session.execute(select(func.count(Movie._id))).scalar_one()
-            total_shows = session.execute(select(func.count(Show._id))).scalar_one()
-            total_seasons = session.execute(select(func.count(Season._id))).scalar_one()
-            total_episodes = session.execute(select(func.count(Episode._id))).scalar_one()
-            total_items = session.execute(select(func.count(MediaItem._id))).scalar_one()
-
-            logger.log("ITEM", f"Movies: {total_movies} (Symlinks: {movies_symlinks})")
-            logger.log("ITEM", f"Shows: {total_shows}")
-            logger.log("ITEM", f"Seasons: {total_seasons}")
-            logger.log("ITEM", f"Episodes: {total_episodes} (Symlinks: {episodes_symlinks})")
-            logger.log("ITEM", f"Total Items: {total_items} (Symlinks: {total_symlinks})")
 
         self.executors = []
         self.scheduler = BackgroundScheduler()
@@ -200,15 +166,7 @@ class Program(threading.Thread):
 
         number_of_rows_per_page = 10
         for page_number in range(0, (count // number_of_rows_per_page) + 1):
-            with db.Session() as session:
-                items_to_submit = session.execute(
-                    select(MediaItem)
-                    .where(MediaItem.type.in_(["movie", "show"]))
-                    .where(MediaItem.last_state != "Completed")
-                    .order_by(MediaItem.requested_at.desc())
-                    .limit(number_of_rows_per_page)
-                    .offset(page_number * number_of_rows_per_page)
-                ).unique().scalars().all()
+            
 
                 for item in items_to_submit:
                     self._push_event_queue(Event(emitted_by="RetryLibrary", item=item))

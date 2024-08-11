@@ -2,30 +2,31 @@ import contextlib
 import signal
 import sys
 import threading
+import asyncio
 import time
 import traceback
 
 import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from controllers.actions import router as actions_router
 from controllers.default import router as default_router
 from controllers.items import router as items_router
-from controllers.ws import router as ws_router
-
 from controllers.settings import router as settings_router
 from controllers.tmdb import router as tmdb_router
 from controllers.webhooks import router as webhooks_router
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from program import Program
+from controllers.ws import router as ws_router
+from program.riven import RivenTemporalWorker
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+
 from utils.cli import handle_args
 from utils.logger import logger
-
 
 class LoguruMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         start_time = time.time()
+        response = None
         try:
             response = await call_next(request)
         except Exception as e:
@@ -33,11 +34,13 @@ class LoguruMiddleware(BaseHTTPMiddleware):
             raise
         finally:
             process_time = time.time() - start_time
+            status_code = response.status_code if response else 500
             logger.log(
                 "API",
-                f"{request.method} {request.url.path} - {response.status_code if 'response' in locals() else '500'} - {process_time:.2f}s",
+                f"{request.method} {request.url.path} - {status_code} - {process_time:.2f}s",
             )
         return response
+
 
 args = handle_args()
 
@@ -51,7 +54,7 @@ app = FastAPI(
         "url": "https://www.gnu.org/licenses/gpl-3.0.en.html",
     },
 )
-app.program = Program(args)
+app.riven = RivenTemporalWorker()
 
 app.add_middleware(LoguruMiddleware)
 app.add_middleware(
@@ -69,7 +72,6 @@ app.include_router(webhooks_router)
 app.include_router(tmdb_router)
 app.include_router(actions_router)
 app.include_router(ws_router)
-
 
 class Server(uvicorn.Server):
     def install_signal_handlers(self):
@@ -91,10 +93,23 @@ class Server(uvicorn.Server):
             self.should_exit = True
             sys.exit(0)
 
+async def start_riven():
+    """Start the Riven worker asynchronously."""
+    await app.riven.start()
+    await app.riven.worker.run()  # Assuming `run()` is also an async method
+
+async def shutdown():
+    """Handle the shutdown of both Uvicorn and the Riven worker."""
+    logger.log("PROGRAM", "Initiating shutdown sequence...")
+    await app.riven.stop()
+    logger.log("PROGRAM", "Riven worker stopped. Now shutting down Uvicorn...")
+    # Here, we ensure Uvicorn will stop by signaling to its `should_exit` flag
+    server.should_exit = True
+
 def signal_handler(signum, frame):
-    logger.log("PROGRAM","Exiting Gracefully.")
-    app.program.stop()
-    sys.exit(0)
+    logger.log("PROGRAM", "Exiting Gracefully.")
+    loop = asyncio.get_event_loop()
+    asyncio.run_coroutine_threadsafe(shutdown(), loop)
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
@@ -104,8 +119,7 @@ server = Server(config=config)
 
 with server.run_in_thread():
     try:
-        app.program.start()
-        app.program.run()
+        asyncio.run(start_riven())  # Run the Riven worker in the event loop
     except Exception as e:
         logger.error(f"Error in main thread: {e}")
         logger.exception(traceback.format_exc())
