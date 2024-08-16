@@ -2,10 +2,27 @@ import os
 
 from alembic.autogenerate import compare_metadata
 from alembic.runtime.migration import MigrationContext
+from sqlalchemy import MetaData
+from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.orm import DeclarativeBase
+
 from program.settings.manager import settings_manager
 from sqla_wrapper import Alembic, SQLAlchemy
 from utils import data_dir_path
 from utils.logger import logger
+
+naming_convention = {
+    "ix": "ix_ct_%(table_name)s_%(column_0_N_name)s",
+    "uq": "uq_ct_%(table_name)s_%(column_0_N_name)s",
+    "ck": "ck_ct_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_ct_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_ct_%(table_name)s",
+}
+
+
+class Base(DeclarativeBase, AsyncAttrs):
+    metadata = MetaData(naming_convention=naming_convention)
+
 
 db = SQLAlchemy(settings_manager.settings.database.host)
 
