@@ -8,8 +8,10 @@ active_connections = []
 
 async def connect(websocket: WebSocket):
     await websocket.accept()
-    logger.debug("Frontend connected!")
-    active_connections.append(websocket)
+    existing_connection = next((connection for connection in active_connections if connection.app == websocket.app), None)
+    if not existing_connection:
+        logger.debug("Frontend connected!")
+        active_connections.append(websocket)
     if websocket.app.program.initialized:
         status = "running"
     else:
