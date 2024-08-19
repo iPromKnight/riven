@@ -23,7 +23,10 @@ class Subliminal:
                 providers.append(provider)
         self.pool = ProviderPool(providers=providers,provider_configs=provider_config)
         for provider in self.pool.providers:
-            self.pool[provider].initialize()
+            try:
+                self.pool[provider].initialize()
+            except:
+                logger.warning(f"Could not initialize provider: {provider}")
         if not region.is_configured:
             region.configure('dogpile.cache.dbm', arguments={'filename': f'{root_dir}/data/subliminal.dbm'})
         self.languages = set(create_language_from_string(lang) for lang in self.settings.languages)
