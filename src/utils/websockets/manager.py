@@ -20,15 +20,14 @@ async def connect(websocket: WebSocket):
 
 def disconnect(websocket: WebSocket):
     logger.debug("Frontend disconnected!")
-    active_connections.remove(websocket)
+    existing_connection = next((connection for connection in active_connections if connection.app == websocket.app), None)
+    active_connections.remove(existing_connection)
     
 async def _send_json(message: json, websocket: WebSocket):
-    if websocket.client_state != 2:
-        return
     await websocket.send_json(message)
 
 def send_event_update(running, queued):
-    message = {"queued": [{"emitted_by":event.emitted_by, "item":event.item._id} for event in running], "running": [{"emitted_by":event.emitted_by, "item":event.item._id} for event in queued]}
+    message = {"running": [{"emitted_by":event.emitted_by, "item":event.item._id} for event in running], "queued": [{"emitted_by":event.emitted_by, "item":event.item._id} for event in queued]}
     broadcast({"type": "event_update", "message": message})
 
 def send_health_update(status: str):
